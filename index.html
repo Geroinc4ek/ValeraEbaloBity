@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Битва на поле</title>
     <style>
         body {
@@ -14,43 +15,55 @@
             font-family: Arial, sans-serif;
             color: #fff;
             overflow: hidden;
+            min-height: 100vh;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
         }
         #game-area {
             position: relative;
-            width: 600px;
-            height: 400px;
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            max-height: 60vh;
             background: #555;
             border: 2px solid #fff;
             overflow: hidden;
         }
         #player {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            width: 8%;
+            height: 12%;
             background: url('fist.png') no-repeat center;
             background-size: contain;
             z-index: 10;
         }
         .enemy {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            width: 8%;
+            height: 12%;
             background: url('enemy.png') no-repeat center;
             background-size: contain;
             z-index: 5;
         }
         .boss {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            width: 16%;
+            height: 24%;
             background: url('enemy.png') no-repeat center;
             background-size: contain;
             z-index: 5;
         }
         #gun-shot {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            width: 16%;
+            height: 24%;
             background: url('gun.png') no-repeat center;
             background-size: contain;
             display: none;
@@ -58,8 +71,8 @@
         }
         .blood-spot {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 5%;
+            height: 7%;
             background: url('blood.png') no-repeat center;
             background-size: contain;
             z-index: 2;
@@ -68,8 +81,8 @@
         #win-animation {
             display: none;
             position: absolute;
-            width: 600px;
-            height: 400px;
+            width: 100%;
+            height: 100%;
             top: 0;
             left: 0;
             z-index: 15;
@@ -77,34 +90,36 @@
         #player-health-bar, #wave-progress-bar {
             width: 100%;
             height: 100%;
-            background: linear-gradient(to right, #ff4d4d, #ff1a1a); /* Стильный красный градиент */
+            background: linear-gradient(to right, #ff4d4d, #ff1a1a);
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
             transition: width 0.3s ease;
         }
         #player-health-container, #wave-progress-container {
-            width: 300px;
-            height: 20px; /* Увеличил высоту для стиля */
-            background: linear-gradient(to bottom, #444, #222); /* Тёмный градиент */
+            width: 50vw;
+            max-width: 300px;
+            height: 20px;
+            background: linear-gradient(to bottom, #444, #222);
             margin: 8px 0;
-            border: 2px solid #ccc; /* Светлая рамка */
+            border: 2px solid #ccc;
             border-radius: 10px;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
             overflow: hidden;
         }
         #wave-progress-bar {
-            background: linear-gradient(to right, #4dff4d, #1aff1a); /* Зелёный градиент */
+            background: linear-gradient(to right, #4dff4d, #1aff1a);
         }
         button {
             padding: 8px 15px;
             margin: 5px;
-            font-size: 12px;
+            font-size: clamp(10px, 2vw, 12px);
             background: #007bff;
             border: 1px solid #fff;
             color: #fff;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 1px;
+            border-radius: 5px;
         }
         button:hover {
             background: #0056b3;
@@ -114,43 +129,68 @@
             cursor: not-allowed;
         }
         h1 {
-            font-size: 24px;
+            font-size: clamp(18px, 4vw, 24px);
             color: #fff;
             margin: 10px 0;
         }
         div {
-            font-size: 14px;
+            font-size: clamp(12px, 2.5vw, 14px);
             margin: 5px 0;
         }
         #break-timer {
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
             color: #ffff00;
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        @media (max-width: 600px) {
+            #game-container {
+                padding: 5px;
+            }
+            #game-area {
+                max-height: 50vh;
+            }
+            #player-health-container, #wave-progress-container {
+                width: 70vw;
+            }
+            button {
+                padding: 6px 12px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>БИТВА НА ПОЛЕ</h1>
-    <div id="game-area">
-        <div id="player"></div>
-        <div id="gun-shot"></div>
-        <img src="win.gif" id="win-animation">
-    </div>
-    <div>Здоровье игрока: <span id="player-health">100</span></div>
-    <div id="player-health-container">
-        <div id="player-health-bar"></div>
-    </div>
-    <div>Волна: <span id="wave">1</span> Прогресс: <span id="enemies-defeated">0</span>/<span id="enemies-to-defeat">5</span></div>
-    <div id="wave-progress-container">
-        <div id="wave-progress-bar"></div>
-    </div>
-    <div>Очки: <span id="score">0</span></div>
-    <div id="break-timer" style="display: none;">Перерыв: <span id="timer">10</span> сек</div>
-    <button onclick="punch()">УДАР КУЛАКОМ</button>
-    <button id="shoot-button" onclick="shoot()">ВЫСТРЕЛ</button>
-    <div>
-        <button onclick="buyDamage()">УВЕЛИЧИТЬ УРОН (50)</button>
-        <button onclick="heal()">ЛЕЧЕНИЕ (30)</button>
-        <button onclick="syncWithTelegram()">СИНХРОНИЗИРОВАТЬ</button>
+    <div id="game-container">
+        <h1>БИТВА НА ПОЛЕ</h1>
+        <div id="game-area">
+            <div id="player"></div>
+            <div id="gun-shot"></div>
+            <img src="win.gif" id="win-animation">
+        </div>
+        <div>Здоровье игрока: <span id="player-health">100</span></div>
+        <div id="player-health-container">
+            <div id="player-health-bar"></div>
+        </div>
+        <div>Волна: <span id="wave">1</span> Прогресс: <span id="enemies-defeated">0</span>/<span id="enemies-to-defeat">5</span></div>
+        <div id="wave-progress-container">
+            <div id="wave-progress-bar"></div>
+        </div>
+        <div>Очки: <span id="score">0</span></div>
+        <div id="break-timer" style="display: none;">Перерыв: <span id="timer">10</span> сек</div>
+        <div id="controls">
+            <button onclick="punch()">УДАР КУЛАКОМ</button>
+            <button id="shoot-button" onclick="shoot()">ВЫСТРЕЛ</button>
+            <button onclick="buyDamage()">УВЕЛИЧИТЬ УРОН (50)</button>
+            <button onclick="heal()">ЛЕЧЕНИЕ (30)</button>
+            <button onclick="syncWithTelegram()">СИНХРОНИЗИРОВАТЬ</button>
+        </div>
     </div>
 
     <script>
@@ -166,10 +206,11 @@
         let bossHealth = 200;
         let enemyDamage = 10;
         let bossDamage = 20;
-        let playerX = 275;
-        let playerY = 175;
+        let playerX = 0;
+        let playerY = 0;
         let isBreak = false;
         let shootCooldown = false;
+        let activeEnemies = 0; // Текущие живые враги
 
         const gameArea = document.getElementById('game-area');
         const player = document.getElementById('player');
@@ -233,7 +274,7 @@
 
         // Обновление здоровья игрока
         function updatePlayerHealth() {
-            playerHealthDisplay.textContent = playerHealth;
+            playerHealthDisplay.textContent = Math.round(playerHealth);
             playerHealthBar.style.width = (playerHealth / playerMaxHealth) * 100 + '%';
             if (playerHealth <= 0) {
                 gameOver();
@@ -246,7 +287,7 @@
             enemiesDefeatedDisplay.textContent = enemiesDefeated;
             enemiesToDefeatDisplay.textContent = enemiesToDefeat;
             waveProgressBar.style.width = (enemiesDefeated / enemiesToDefeat) * 100 + '%';
-            if (enemiesDefeated >= enemiesToDefeat) {
+            if (enemiesDefeated >= enemiesToDefeat && activeEnemies === 0) {
                 startBreak();
             }
             saveGame();
@@ -267,37 +308,47 @@
 
         function movePlayer() {
             const speed = 5;
+            const gameWidth = gameArea.offsetWidth;
+            const gameHeight = gameArea.offsetHeight;
+            const playerWidth = player.offsetWidth;
+            const playerHeight = player.offsetHeight;
+
             if (keys['ArrowUp'] || keys['w']) playerY = Math.max(0, playerY - speed);
-            if (keys['ArrowDown'] || keys['s']) playerY = Math.min(350, playerY + speed);
+            if (keys['ArrowDown'] || keys['s']) playerY = Math.min(gameHeight - playerHeight, playerY + speed);
             if (keys['ArrowLeft'] || keys['a']) playerX = Math.max(0, playerX - speed);
-            if (keys['ArrowRight'] || keys['d']) playerX = Math.min(550, playerX + speed);
+            if (keys['ArrowRight'] || keys['d']) playerX = Math.min(gameWidth - playerWidth, playerX + speed);
             player.style.left = playerX + 'px';
             player.style.top = playerY + 'px';
         }
 
         // Создание врага или босса
         function spawnEnemy() {
-            if (isBreak) return;
+            if (isBreak || activeEnemies >= enemiesToDefeat) return;
             const isBossWave = wave % 5 === 0;
             const enemy = document.createElement('div');
             enemy.className = isBossWave ? 'boss' : 'enemy';
             enemy.health = isBossWave ? bossHealth : enemyHealth;
             enemy.damage = isBossWave ? bossDamage : enemyDamage;
             const side = Math.floor(Math.random() * 4);
+            const gameWidth = gameArea.offsetWidth;
+            const gameHeight = gameArea.offsetHeight;
             let x, y;
-            if (side === 0) { x = Math.random() * 550; y = -50; }
-            else if (side === 1) { x = 600; y = Math.random() * 350; }
-            else if (side === 2) { x = Math.random() * 550; y = 400; }
-            else { x = -50; y = Math.random() * 350; }
+            if (side === 0) { x = Math.random() * (gameWidth - (isBossWave ? 100 : 50)); y = -(isBossWave ? 100 : 50); }
+            else if (side === 1) { x = gameWidth; y = Math.random() * (gameHeight - (isBossWave ? 100 : 50)); }
+            else if (side === 2) { x = Math.random() * (gameWidth - (isBossWave ? 100 : 50)); y = gameHeight; }
+            else { x = -(isBossWave ? 100 : 50); y = Math.random() * (gameHeight - (isBossWave ? 100 : 50)); }
             enemy.style.left = x + 'px';
             enemy.style.top = y + 'px';
             gameArea.appendChild(enemy);
             enemies.push(enemy);
+            activeEnemies++;
         }
 
         // Движение и атака врагов
         function updateEnemies() {
             if (isBreak) return;
+            const gameWidth = gameArea.offsetWidth;
+            const gameHeight = gameArea.offsetHeight;
             enemies.forEach((enemy, index) => {
                 const ex = parseFloat(enemy.style.left);
                 const ey = parseFloat(enemy.style.top);
@@ -320,6 +371,7 @@
                     gameArea.removeChild(enemy);
                     enemies.splice(index, 1);
                     enemiesDefeated++;
+                    activeEnemies--;
                     score += enemy.className === 'boss' ? 50 : 10;
                     updateWaveProgress();
                     updateScore();
@@ -352,7 +404,7 @@
                 const ex = parseFloat(enemy.style.left);
                 const ey = parseFloat(enemy.style.top);
                 const distance = Math.sqrt((playerX + 25 - ex - (enemy.className === 'boss' ? 50 : 25)) ** 2 + (playerY + 25 - ey - (enemy.className === 'boss' ? 50 : 25)) ** 2);
-                if (distance < 250) { // Увеличенный радиус атаки
+                if (distance < 250) {
                     enemy.health -= shootDamage;
                 }
             });
@@ -362,7 +414,7 @@
             setTimeout(() => {
                 shootCooldown = false;
                 shootButton.disabled = false;
-            }, 2000); // 2 секунды кулдауна
+            }, 2000);
         }
 
         // Перерыв между волнами
@@ -371,6 +423,7 @@
             clearInterval(enemySpawnInterval);
             enemies.forEach(enemy => gameArea.removeChild(enemy));
             enemies = [];
+            activeEnemies = 0;
             breakTimer.style.display = 'block';
             let timeLeft = 10;
             timerDisplay.textContent = timeLeft;
@@ -389,9 +442,9 @@
         function nextWave() {
             wave++;
             enemiesDefeated = 0;
-            enemiesToDefeat = wave % 5 === 0 ? 1 : 5 + Math.floor(wave / 2); // Увеличение числа врагов
+            enemiesToDefeat = wave % 5 === 0 ? 1 : 5 + Math.floor(wave / 2);
             waveDisplay.textContent = wave;
-            enemySpawnInterval = setInterval(spawnEnemy, 2000);
+            enemySpawnInterval = setInterval(spawnEnemy, 3000); // Увеличил интервал до 3 секунд
             isBreak = false;
             winAnimation.style.display = 'block';
             setTimeout(() => winAnimation.style.display = 'none', 1000);
@@ -403,6 +456,7 @@
             clearInterval(gameLoop);
             enemies.forEach(enemy => gameArea.removeChild(enemy));
             enemies = [];
+            activeEnemies = 0;
             alert("Ты проиграл! Игра окончена.");
             resetGame(true);
         }
@@ -418,14 +472,15 @@
                 enemiesToDefeat = 5;
                 punchDamage = 20;
                 shootDamage = 40;
-                playerX = 275;
-                playerY = 175;
+                playerX = gameArea.offsetWidth / 2 - player.offsetWidth / 2;
+                playerY = gameArea.offsetHeight / 2 - player.offsetHeight / 2;
                 updateScore();
                 waveDisplay.textContent = wave;
             }
             playerHealth = playerMaxHealth;
             enemies.forEach(enemy => gameArea.removeChild(enemy));
             enemies = [];
+            activeEnemies = 0;
             updatePlayerHealth();
             updateWaveProgress();
             startGame();
@@ -502,7 +557,7 @@
             player.style.left = playerX + 'px';
             player.style.top = playerY + 'px';
             clearInterval(enemySpawnInterval);
-            enemySpawnInterval = setInterval(spawnEnemy, 2000);
+            enemySpawnInterval = setInterval(spawnEnemy, 3000); // Спавн каждые 3 секунды
             gameLoop = setInterval(() => {
                 movePlayer();
                 updateEnemies();
@@ -510,11 +565,21 @@
         }
 
         // Инициализация
-        loadGame(); // Загружаем сохранение при старте
+        loadGame();
+        playerX = gameArea.offsetWidth / 2 - player.offsetWidth / 2;
+        playerY = gameArea.offsetHeight / 2 - player.offsetHeight / 2;
         updatePlayerHealth();
         updateWaveProgress();
         updateScore();
         startGame();
+
+        // Обновление размеров при изменении окна
+        window.addEventListener('resize', () => {
+            playerX = gameArea.offsetWidth / 2 - player.offsetWidth / 2;
+            playerY = gameArea.offsetHeight / 2 - player.offsetHeight / 2;
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+        });
     </script>
 </body>
 </html>
