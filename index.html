@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Битва на поле</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+        #game-area {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            background: #555;
+            border: 2px solid #fff;
+            overflow: hidden;
+        }
+        #player {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: url('fist.png') no-repeat center;
+            background-size: contain;
+            z-index: 10;
+        }
+        .enemy {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: url('enemy.png') no-repeat center;
+            background-size: contain;
+            z-index: 5;
+        }
+        .boss {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: url('enemy.png') no-repeat center;
+            background-size: contain;
+            z-index: 5;
+        }
+        #gun-shot {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: url('gun.png') no-repeat center;
+            background-size: contain;
+            display: none;
+            z-index: 10;
+        }
+        .blood-spot {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: url('blood.png') no-repeat center;
+            background-size: contain;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #win-animation {
+            display: none;
+            position: absolute;
+            width: 600px;
+            height: 400px;
+            top: 0;
+            left: 0;
+            z-index: 15;
+        }
+        #player-health-bar, #wave-progress-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #ff4d4d, #ff1a1a); /* Стильный красный градиент */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            transition: width 0.3s ease;
+        }
+        #player-health-container, #wave-progress-container {
+            width: 300px;
+            height: 20px; /* Увеличил высоту для стиля */
+            background: linear-gradient(to bottom, #444, #222); /* Тёмный градиент */
+            margin: 8px 0;
+            border: 2px solid #ccc; /* Светлая рамка */
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        #wave-progress-bar {
+            background: linear-gradient(to right, #4dff4d, #1aff1a); /* Зелёный градиент */
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            font-size: 12px;
+            background: #007bff;
+            border: 1px solid #fff;
+            color: #fff;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        h1 {
+            font-size: 24px;
+            color: #fff;
+            margin: 10px 0;
+        }
+        div {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        #break-timer {
+            font-size: 16px;
+            color: #ffff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>БИТВА НА ПОЛЕ</h1>
+    <div id="game-area">
+        <div id="player"></div>
+        <div id="gun-shot"></div>
+        <img src="win.gif" id="win-animation">
+    </div>
+    <div>Здоровье игрока: <span id="player-health">100</span></div>
+    <div id="player-health-container">
+        <div id="player-health-bar"></div>
+    </div>
+    <div>Волна: <span id="wave">1</span> Прогресс: <span id="enemies-defeated">0</span>/<span id="enemies-to-defeat">5</span></div>
+    <div id="wave-progress-container">
+        <div id="wave-progress-bar"></div>
+    </div>
+    <div>Очки: <span id="score">0</span></div>
+    <div id="break-timer" style="display: none;">Перерыв: <span id="timer">10</span> сек</div>
+    <button onclick="punch()">УДАР КУЛАКОМ</button>
+    <button id="shoot-button" onclick="shoot()">ВЫСТРЕЛ</button>
+    <div>
+        <button onclick="buyDamage()">УВЕЛИЧИТЬ УРОН (50)</button>
+        <button onclick="heal()">ЛЕЧЕНИЕ (30)</button>
+        <button onclick="syncWithTelegram()">СИНХРОНИЗИРОВАТЬ</button>
+    </div>
+
+    <script>
+        let playerHealth = 100;
+        let playerMaxHealth = 100;
+        let score = 0;
+        let wave = 1;
+        let enemiesDefeated = 0;
+        let enemiesToDefeat = 5;
+        let punchDamage = 20;
+        let shootDamage = 40;
+        let enemyHealth = 50;
+        let bossHealth = 200;
+        let enemyDamage = 10;
+        let bossDamage = 20;
+        let playerX = 275;
+        let playerY = 175;
+        let isBreak = false;
+        let shootCooldown = false;
+
+        const gameArea = document.getElementById('game-area');
+        const player = document.getElementById('player');
+        const gunShot = document.getElementById('gun-shot');
+        const shootButton = document.getElementById('shoot-button');
+        const playerHealthDisplay = document.getElementById('player-health');
+        const playerHealthBar = document.getElementById('player-health-bar');
+        const waveDisplay = document.getElementById('wave');
+        const enemiesDefeatedDisplay = document.getElementById('enemies-defeated');
+        const enemiesToDefeatDisplay = document.getElementById('enemies-to-defeat');
+        const waveProgressBar = document.getElementById('wave-progress-bar');
+        const scoreDisplay = document.getElementById('score');
+        const winAnimation = document.getElementById('win-animation');
+        const breakTimer = document.getElementById('break-timer');
+        const timerDisplay = document.getElementById('timer');
+
+        let enemies = [];
+        let enemySpawnInterval;
+        let breakInterval;
+        let keys = {};
+
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.ready();
+            const initData = window.Telegram.WebApp.initDataUnsafe;
+            console.log("Telegram user:", initData?.user);
+        }
+
+        // Локальное сохранение
+        function saveGame() {
+            const gameData = {
+                playerHealth: playerHealth,
+                playerMaxHealth: playerMaxHealth,
+                score: score,
+                wave: wave,
+                enemiesDefeated: enemiesDefeated,
+                enemiesToDefeat: enemiesToDefeat,
+                punchDamage: punchDamage,
+                shootDamage: shootDamage
+            };
+            localStorage.setItem('gameData', JSON.stringify(gameData));
+        }
+
+        function loadGame() {
+            const savedData = localStorage.getItem('gameData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                playerHealth = data.playerHealth;
+                playerMaxHealth = data.playerMaxHealth;
+                score = data.score;
+                wave = data.wave;
+                enemiesDefeated = data.enemiesDefeated;
+                enemiesToDefeat = data.enemiesToDefeat;
+                punchDamage = data.punchDamage;
+                shootDamage = data.shootDamage;
+                updatePlayerHealth();
+                updateWaveProgress();
+                updateScore();
+                waveDisplay.textContent = wave;
+            }
+        }
+
+        // Обновление здоровья игрока
+        function updatePlayerHealth() {
+            playerHealthDisplay.textContent = playerHealth;
+            playerHealthBar.style.width = (playerHealth / playerMaxHealth) * 100 + '%';
+            if (playerHealth <= 0) {
+                gameOver();
+            }
+            saveGame();
+        }
+
+        // Обновление прогресса волны
+        function updateWaveProgress() {
+            enemiesDefeatedDisplay.textContent = enemiesDefeated;
+            enemiesToDefeatDisplay.textContent = enemiesToDefeat;
+            waveProgressBar.style.width = (enemiesDefeated / enemiesToDefeat) * 100 + '%';
+            if (enemiesDefeated >= enemiesToDefeat) {
+                startBreak();
+            }
+            saveGame();
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = score;
+            saveGame();
+        }
+
+        // Движение игрока
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        function movePlayer() {
+            const speed = 5;
+            if (keys['ArrowUp'] || keys['w']) playerY = Math.max(0, playerY - speed);
+            if (keys['ArrowDown'] || keys['s']) playerY = Math.min(350, playerY + speed);
+            if (keys['ArrowLeft'] || keys['a']) playerX = Math.max(0, playerX - speed);
+            if (keys['ArrowRight'] || keys['d']) playerX = Math.min(550, playerX + speed);
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+        }
+
+        // Создание врага или босса
+        function spawnEnemy() {
+            if (isBreak) return;
+            const isBossWave = wave % 5 === 0;
+            const enemy = document.createElement('div');
+            enemy.className = isBossWave ? 'boss' : 'enemy';
+            enemy.health = isBossWave ? bossHealth : enemyHealth;
+            enemy.damage = isBossWave ? bossDamage : enemyDamage;
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * 550; y = -50; }
+            else if (side === 1) { x = 600; y = Math.random() * 350; }
+            else if (side === 2) { x = Math.random() * 550; y = 400; }
+            else { x = -50; y = Math.random() * 350; }
+            enemy.style.left = x + 'px';
+            enemy.style.top = y + 'px';
+            gameArea.appendChild(enemy);
+            enemies.push(enemy);
+        }
+
+        // Движение и атака врагов
+        function updateEnemies() {
+            if (isBreak) return;
+            enemies.forEach((enemy, index) => {
+                const ex = parseFloat(enemy.style.left);
+                const ey = parseFloat(enemy.style.top);
+                const dx = playerX + 25 - ex - (enemy.className === 'boss' ? 50 : 25);
+                const dy = playerY + 25 - ey - (enemy.className === 'boss' ? 50 : 25);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const speed = enemy.className === 'boss' ? 1 : 2;
+
+                if (distance < (enemy.className === 'boss' ? 80 : 60)) {
+                    playerHealth -= enemy.damage / 60;
+                    updatePlayerHealth();
+                } else {
+                    const angle = Math.atan2(dy, dx);
+                    enemy.style.left = (ex + Math.cos(angle) * speed) + 'px';
+                    enemy.style.top = (ey + Math.sin(angle) * speed) + 'px';
+                }
+
+                if (enemy.health <= 0) {
+                    addBloodSpot(ex, ey);
+                    gameArea.removeChild(enemy);
+                    enemies.splice(index, 1);
+                    enemiesDefeated++;
+                    score += enemy.className === 'boss' ? 50 : 10;
+                    updateWaveProgress();
+                    updateScore();
+                }
+            });
+        }
+
+        // Удар кулаком
+        function punch() {
+            if (isBreak) return;
+            enemies.forEach((enemy) => {
+                const ex = parseFloat(enemy.style.left);
+                const ey = parseFloat(enemy.style.top);
+                const distance = Math.sqrt((playerX + 25 - ex - (enemy.className === 'boss' ? 50 : 25)) ** 2 + (playerY + 25 - ey - (enemy.className === 'boss' ? 50 : 25)) ** 2);
+                if (distance < 80) {
+                    enemy.health -= punchDamage;
+                }
+            });
+        }
+
+        // Выстрел с кулдауном
+        function shoot() {
+            if (isBreak || shootCooldown) return;
+            gunShot.style.display = 'block';
+            gunShot.style.left = playerX + 'px';
+            gunShot.style.top = playerY + 'px';
+            setTimeout(() => gunShot.style.display = 'none', 100);
+
+            enemies.forEach((enemy) => {
+                const ex = parseFloat(enemy.style.left);
+                const ey = parseFloat(enemy.style.top);
+                const distance = Math.sqrt((playerX + 25 - ex - (enemy.className === 'boss' ? 50 : 25)) ** 2 + (playerY + 25 - ey - (enemy.className === 'boss' ? 50 : 25)) ** 2);
+                if (distance < 250) { // Увеличенный радиус атаки
+                    enemy.health -= shootDamage;
+                }
+            });
+
+            shootCooldown = true;
+            shootButton.disabled = true;
+            setTimeout(() => {
+                shootCooldown = false;
+                shootButton.disabled = false;
+            }, 2000); // 2 секунды кулдауна
+        }
+
+        // Перерыв между волнами
+        function startBreak() {
+            isBreak = true;
+            clearInterval(enemySpawnInterval);
+            enemies.forEach(enemy => gameArea.removeChild(enemy));
+            enemies = [];
+            breakTimer.style.display = 'block';
+            let timeLeft = 10;
+            timerDisplay.textContent = timeLeft;
+            breakInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(breakInterval);
+                    breakTimer.style.display = 'none';
+                    nextWave();
+                }
+            }, 1000);
+        }
+
+        // Следующая волна
+        function nextWave() {
+            wave++;
+            enemiesDefeated = 0;
+            enemiesToDefeat = wave % 5 === 0 ? 1 : 5 + Math.floor(wave / 2); // Увеличение числа врагов
+            waveDisplay.textContent = wave;
+            enemySpawnInterval = setInterval(spawnEnemy, 2000);
+            isBreak = false;
+            winAnimation.style.display = 'block';
+            setTimeout(() => winAnimation.style.display = 'none', 1000);
+        }
+
+        // Конец игры
+        function gameOver() {
+            clearInterval(enemySpawnInterval);
+            clearInterval(gameLoop);
+            enemies.forEach(enemy => gameArea.removeChild(enemy));
+            enemies = [];
+            alert("Ты проиграл! Игра окончена.");
+            resetGame(true);
+        }
+
+        // Сброс игры
+        function resetGame(fullReset = false) {
+            if (fullReset) {
+                playerHealth = 100;
+                playerMaxHealth = 100;
+                score = 0;
+                wave = 1;
+                enemiesDefeated = 0;
+                enemiesToDefeat = 5;
+                punchDamage = 20;
+                shootDamage = 40;
+                playerX = 275;
+                playerY = 175;
+                updateScore();
+                waveDisplay.textContent = wave;
+            }
+            playerHealth = playerMaxHealth;
+            enemies.forEach(enemy => gameArea.removeChild(enemy));
+            enemies = [];
+            updatePlayerHealth();
+            updateWaveProgress();
+            startGame();
+        }
+
+        // Покупка урона
+        function buyDamage() {
+            if (score >= 50) {
+                score -= 50;
+                punchDamage += 10;
+                shootDamage += 20;
+                updateScore();
+                alert(`УРОН УВЕЛИЧЕН: ${punchDamage}/${shootDamage}`);
+            } else {
+                alert('НЕДОСТАТОЧНО ОЧКОВ');
+            }
+        }
+
+        // Лечение
+        function heal() {
+            if (score >= 30) {
+                if (playerHealth < playerMaxHealth) {
+                    score -= 30;
+                    playerHealth = Math.min(playerMaxHealth, playerHealth + 50);
+                    updateScore();
+                    updatePlayerHealth();
+                    alert(`Лечение: +50 HP, текущее здоровье: ${playerHealth}`);
+                } else {
+                    alert('Здоровье уже полное!');
+                }
+            } else {
+                alert('НЕДОСТАТОЧНО ОЧКОВ');
+            }
+        }
+
+        // Синхронизация с Telegram
+        function syncWithTelegram() {
+            const data = {
+                score: score,
+                clickValue: punchDamage,
+                wave: wave,
+                playerMaxHealth: playerMaxHealth,
+                enemyHealth: enemyHealth,
+                bossHealth: bossHealth,
+                username: window.Telegram?.WebApp?.initDataUnsafe?.user?.username || "Unknown"
+            };
+            const jsonData = JSON.stringify(data);
+            const encodedData = btoa(jsonData);
+            const syncCommand = `/start sync_${encodedData}`;
+
+            navigator.clipboard.writeText(syncCommand).then(() => {
+                alert('Команда синхронизации скопирована в буфер обмена! Вставь её в чат с ботом: ' + syncCommand);
+            }).catch(err => {
+                alert('Ошибка копирования. Используй вручную: ' + syncCommand);
+                console.error('Clipboard error:', err);
+            });
+
+            console.log("Sync command:", syncCommand);
+        }
+
+        // Добавление крови
+        function addBloodSpot(x, y) {
+            const blood = document.createElement('div');
+            blood.className = 'blood-spot';
+            blood.style.left = x + 'px';
+            blood.style.top = y + 'px';
+            gameArea.appendChild(blood);
+            setTimeout(() => blood.remove(), 1000);
+        }
+
+        // Основной игровой цикл
+        let gameLoop;
+        function startGame() {
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            clearInterval(enemySpawnInterval);
+            enemySpawnInterval = setInterval(spawnEnemy, 2000);
+            gameLoop = setInterval(() => {
+                movePlayer();
+                updateEnemies();
+            }, 1000 / 60);
+        }
+
+        // Инициализация
+        loadGame(); // Загружаем сохранение при старте
+        updatePlayerHealth();
+        updateWaveProgress();
+        updateScore();
+        startGame();
+    </script>
+</body>
+</html>
